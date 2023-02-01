@@ -9,6 +9,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
 import 'package:shelf_static/shelf_static.dart' as shelf_static;
+import 'package:http/http.dart' as http;
 
 Future<void> run() async {
   // If the "PORT" environment variable is set, listen to it. Otherwise, 8080.
@@ -50,7 +51,8 @@ final _router = shelf_router.Router()
     (request) => Response.ok(DateTime.now().toUtc().toIso8601String()),
   )
   ..get('/info.json', _infoHandler)
-  ..get('/sum/<a|[0-9]+>/<b|[0-9]+>', _sumHandler);
+  ..get('/sum/<a|[0-9]+>/<b|[0-9]+>', _sumHandler)
+  ..get('/http', _httpPkg);
 
 Response _helloWorldHandler(Request request) => Response.ok('Hello, World!');
 
@@ -66,6 +68,19 @@ Response _sumHandler(Request request, String a, String b) {
   final bNum = int.parse(b);
   return Response.ok(
     _jsonEncode({'a': aNum, 'b': bNum, 'sum': aNum + bNum}),
+    headers: {
+      ..._jsonHeaders,
+      'Cache-Control': 'public, max-age=604800, immutable',
+    },
+  );
+}
+
+Future<Response> _httpPkg(Request request) async {
+  final httpPackageUrl = Uri.https('dart.dev', '/f/packages/http.json');
+  final httpPackageInfo = await http.read(httpPackageUrl);
+
+  return Response.ok(
+    httpPackageInfo,
     headers: {
       ..._jsonHeaders,
       'Cache-Control': 'public, max-age=604800, immutable',
